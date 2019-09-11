@@ -1,11 +1,12 @@
 import requests
 import os
 import time
+import signal
 from requests.exceptions import ConnectionError, ReadTimeout
 
 BASE_URL = 'https://api.iextrading.com/1.0/tops/last/?symbols='
-SYMBOLS_FILE = 'symbols.txt'
-LED_CONTROL_EXE = './ledController '
+SYMBOLS_FILE = '/home/pi/devel/PiWatchlist/symbols.txt'
+LED_CONTROL_EXE = '/home/pi/devel/PiWatchlist/ledController '
 
 initialValue = 0
 
@@ -48,22 +49,26 @@ def processWatchlist(filename):
     return Watchlist(watchlist, value)
 
 
+def sigterm_handler(signal, frame):
+    print('Shutting Down...')
+    os.system(LED_CONTROL_EXE + 'flash')
+    exit(0)
+
+
+signal.signal(signal.SIGTERM, sigterm_handler)
+
 watchlist = processWatchlist(SYMBOLS_FILE)
 
 while True:
     try:
-        print('sending request')
         response = requests.get(buildUrl(watchlist.symbols()), timeout=10).json()
 
         currentValue = 0
         for stock in response:
             currentValue += watchlist.stocks[stock['symbol']] * float(stock['price'])
 
-        #print(currentValue)
-        #print(watchlist.initialValue)
         diff = currentValue - watchlist.initialValue
         pctChange = 100 * (currentValue - watchlist.initialValue) / watchlist.initialValue
-        #print(pctChange)
 
         command = ''
         if diff >= 0:
@@ -76,6 +81,7 @@ while True:
 
     except KeyboardInterrupt:
         print("Shutting down...")
+        os.system(LED_CONTROL_EXE + 'flash')
         exit(0)
 
     except (ConnectionError, ReadTimeout):
