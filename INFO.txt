@@ -1,0 +1,7 @@
+symbols.txt formatting:
+
+<Symbol 1>    <Shares bought at price A>  <Price A>  <Shares bought at price B>  <Price B> ...
+<Symbol 2>    ...
+.
+.
+.
